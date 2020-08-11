@@ -9,7 +9,7 @@ library(leaflet)
 
 # setwd("/root/app/")
 
-shinyModuleUserInterface <- function(id, label, grid = 50000) {
+shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
   tagList(
@@ -22,14 +22,10 @@ shinyModuleConfiguration <- function(id, input) {
   ns <- NS(id)
   configuration <- list()
   
-  print(ns('grid'))
-  
-  configuration["grid"] <- input[[ns('grid')]]
-  
   configuration
 }
 
-shinyModule <- function(input, output, session, data, grid = 50000) {
+shinyModule <- function(input, output, session, data) {
   dataObj <- reactive({ data })
   current <- reactiveVal(data)
   
