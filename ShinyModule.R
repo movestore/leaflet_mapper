@@ -37,7 +37,7 @@ shinyModule <- function(input, output, session, data) {
       addProviderTiles("Esri.WorldStreetMap",group = "StreetMap") %>%
       addProviderTiles("Esri.WorldImagery", group = "Aerial") %>%
       addProviderTiles("Stamen.Terrain", group = "Terrain") %>%
-      addPolylines(data =  as(dataObj(),'SpatialLines'), color ="grey", group = "lines") %>%
+      addPolylines(data = coordinates(dataObj()), color ="cyan", group = "lines") %>%
       addCircles(data = dataObj(), fillOpacity = 0.3, opacity = 0.5, color="blue", group = "points") %>%
       addLegend(position= "topright", colors=c("grey","blue"), 
                 labels=c("lines","points") ,opacity = 0.7, title = "data") %>%
