@@ -7,6 +7,7 @@ library(fasterize)
 library(rgeos)
 library(leaflet)
 
+#test if i can write
 # setwd("/root/app/")
 
 shinyModuleUserInterface <- function(id, label) {
