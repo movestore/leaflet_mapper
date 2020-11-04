@@ -33,14 +33,14 @@ storeConfiguration <- function(configuration) {
 }
 
 ui <- fluidPage(
-  mainPanel(
+ # mainPanel(
     do.call(shinyModuleUserInterface, c("shinyModule", "shinyModule", args)),
     dataTableOutput("table"), #Is neccessary for storing result
     
     if(exists("shinyModuleConfiguration")) {
       actionButton("storeConfiguration", "Store current configuration")
     }
-  )
+ # )
 )
 
 server <- function(input, output, session) {
