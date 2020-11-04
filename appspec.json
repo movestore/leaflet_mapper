@@ -5,25 +5,22 @@
   "dependencies": {
     "R": [
       {
-        "name": "shiny"
-      },
-      {
-        "name": "raster"
-      },
-	        {
         "name": "move"
       },
-	        {
-        "name": "foreach"
+      {
+        "name": "shiny"
       },
 	        {
-        "name": "sf"
+        "name": "sp"
+      },
+	        {
+        "name": "mapview"
       },
 	        {
         "name": "leaflet"
       },
 	        {
-        "name": "rgeos"
+        "name": "leaflet.extras"
       }
     ]
   }
