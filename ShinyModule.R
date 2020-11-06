@@ -2,6 +2,7 @@ library(move)
 library(shiny)
 library(sp)
 library(mapview)
+library(pals)
 library(leaflet)
 library(leaflet.extras)
 
