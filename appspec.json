@@ -26,5 +26,40 @@
         "name": "leaflet.extras"
       }
     ]
+  },
+  "license": {
+    "key": "MIT"
+  },
+  "language": "eng",
+  "keywords": [
+    "map",
+    "leaflet",
+    "shiny",
+    "interactive"
+  ],
+  "people": [
+    {
+      "firstName": "Andrea",
+      "middleInitials": null,
+      "lastName": "Kölzsch",
+      "email": "akoelzsch@ab.mpg.de",
+      "roles": ["reviewer", "author", "creator"],
+      "orcid": "0000-0003-0193-1563",
+      "affiliation": "Max-Planck-Institute of Animal Behavior",
+      "affiliationRor": "https://ror.org/026stee22"
+    },
+	    {
+      "firstName": "Richard",
+      "middleInitials": null,
+      "lastName": "Schuster",
+      "email": "ric.schuster@gmail.com",
+      "roles": ["author"],
+      "orcid": "0000-0003-3191-7869",
+      "affiliation": "Carleton University",
+      "affiliationRor": null
+    }
+  ],
+  "documentation" : {
+    "url": "https://github.com/movestore/leaflet_mapper/blob/master/README.md"
   }
 }
