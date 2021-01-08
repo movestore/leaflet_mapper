@@ -14,7 +14,7 @@ shinyModuleUserInterface <- function(id, label) {
   
   tagList(
     titlePanel("Basic leaflet map"),
-    leafletOutput(ns("leafmap")),
+    leafletOutput(ns("leafmap"),height="90vh"),
     downloadButton(ns('savePlot'), 'Save Plot')
   )
 }
