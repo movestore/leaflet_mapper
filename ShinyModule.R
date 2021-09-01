@@ -42,12 +42,12 @@ shinyModule <- function(input, output, session, data) {
       addTiles() %>%
       addProviderTiles("Esri.WorldTopoMap",group = "TopoMap") %>%
       addProviderTiles("Esri.WorldImagery", group = "Aerial")
-      
+
     for (i in seq(along=ids))
     {
       outl <- outl %>%
         addPolylines(data = coordinates(data_spl[[i]]), color = col[i], group = ids[i], weight=3,opacity=0.3) %>%
-        addCircles(data = data_spl[[i]], fillOpacity = 0.5, opacity = 0.7, color = col[i], group = ids[i])
+        addCircleMarkers(data = data_spl[[i]], fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i], group = ids[i])
     }
 
     outl <- outl %>%
