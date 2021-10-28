@@ -47,7 +47,7 @@ shinyModule <- function(input, output, session, data) {
     {
       outl <- outl %>%
         addPolylines(data = coordinates(data_spl[[i]]), color = col[i], group = ids[i], weight=3,opacity=0.3) %>%
-        addCircleMarkers(data = data_spl[[i]], fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i], group = ids[i])
+        addCircleMarkers(data = data_spl[[i]], popup=data_spl[[i]]$timestamp, fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i], group = ids[i])
     }
 
     outl <- outl %>%
