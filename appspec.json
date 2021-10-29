@@ -58,6 +58,16 @@
       "affiliation": "Carleton University",
       "affiliationRor": null
     },
+	   {
+      "firstName": "Ying Chi",
+      "middleInitials": null,
+      "lastName": "Chan",
+      "email": "chan.yingchi@gmail.com",
+      "roles": ["contributor"],
+      "orcid": null,
+      "affiliation": "Swiss Ornithological Institute",
+      "affiliationRor": null
+    },
 	{
       "firstName": "Anne",
       "middleInitials": "K",
