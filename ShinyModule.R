@@ -6,9 +6,6 @@ library(pals)
 library(leaflet)
 library(leaflet.extras)
 
-#test if i can write
-# setwd("/root/app/")
-
 shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
