@@ -1,8 +1,9 @@
-library(jsonlite)
+renv::use("jsonlite")
+library("jsonlite")
 source("logger.R")
 source("ShinyModule.R")
 
-inputFileName = "input_lowres_geese_74X.rds"
+inputFileName = "input2.rds"
 outputFileName = "output.rds"
 
 if(file.exists("configuration.json")) {

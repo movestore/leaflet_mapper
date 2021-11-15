@@ -1,3 +1,4 @@
+renv::use("move@4.0.6")
 library(move)
 library(shiny)
 library(sp)
