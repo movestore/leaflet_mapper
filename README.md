@@ -22,7 +22,7 @@ none
 The button `Save Plot` in the UI is supposed to allow the local download of the created map.
 
 ### Parameters 
-none
+There are no parameters/settings, but the App opens into an interactive User Interface (UI) where settings can be adapted.
 
 ### Null or error handling:
 **Data:** For use in further Apps the input data set is returned. Empty input will give an error.

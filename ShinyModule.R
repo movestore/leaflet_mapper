@@ -37,8 +37,9 @@ shinyModule <- function(input, output, session, data) {
   mmap <- reactive({
     bounds <- as.vector(bbox(extent(dataObj())))
     cols <- colorFactor(gnuplot(), domain=namesIndiv(dataObj()))
-    outl <- leaflet() %>% 
-      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>% 
+    outl <- leaflet(options=leafletOptions(minZoom=2)) %>% 
+      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
+      
       addTiles() %>%
       addProviderTiles("Esri.WorldTopoMap",group = "TopoMap") %>%
       addProviderTiles("Esri.WorldImagery", group = "Aerial")
