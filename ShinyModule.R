@@ -19,13 +19,6 @@ shinyModuleUserInterface <- function(id, label) {
   )
 }
 
-shinyModuleConfiguration <- function(id, input) {
-  ns <- NS(id)
-  configuration <- list()
-  
-  configuration
-}
-
 shinyModule <- function(input, output, session, data) {
   dataObj <- reactive({ data })
   current <- reactiveVal(data)
