@@ -13,7 +13,7 @@ shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
   tagList(
-    titlePanel("Basic leaflet map"),
+    titlePanel("Basic interactive Map using leaflet"),
     leafletOutput(ns("leafmap"),height="85vh"),
     downloadButton(ns('savePlot'), 'Save Plot')
   )
@@ -40,18 +40,18 @@ shinyModule <- function(input, output, session, data) {
     for (i in seq(along=ids))
     {
       outl <- outl %>%
-        addPolylines(data = coordinates(data_spl[[i]]), color = col[i], group = ids[i], weight=3,opacity=0.3) %>%
-        addCircleMarkers(data = data_spl[[i]], popup=data_spl[[i]]$timestamp, fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i], group = ids[i])
+        addCircleMarkers(data = data_spl[[i]], popup=data_spl[[i]]$timestamp, fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i],, group = paste("Points", ids[i]))  %>%
+      addPolylines(data = coordinates(data_spl[[i]]), color = col[i], weight=3,opacity=0.3, group = paste("Lines",ids[i]))
     }
 
     outl <- outl %>%
       addLegend(position= "topright", colors=col, 
-                labels=ids ,opacity = 0.7, title = "Animals") %>%
+                labels=ids ,opacity = 0.7, title = "Tracks") %>%
       addScaleBar(position="topleft", 
                   options=scaleBarOptions(maxWidth = 100, metric = TRUE, imperial = FALSE, updateWhenIdle = TRUE)) %>%
       addLayersControl(
         baseGroups = c("TopoMap", "Aerial"),
-        overlayGroups = ids,
+        overlayGroups = c(paste("Points",ids),paste("Lines",ids)),
         options = layersControlOptions(collapsed = FALSE)
       )
     outl   
