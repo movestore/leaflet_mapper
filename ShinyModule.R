@@ -5,6 +5,7 @@ library(mapview)
 library(pals)
 library(leaflet)
 library(leaflet.extras)
+library(htmlwidgets)
 
 #test if i can write
 # setwd("/root/app/")
@@ -15,7 +16,7 @@ shinyModuleUserInterface <- function(id, label) {
   tagList(
     titlePanel("Basic interactive Map using leaflet"),
     leafletOutput(ns("leafmap"),height="85vh"),
-    downloadButton(ns('savePlot'), 'Save Plot')
+    downloadButton(ns('savePlot'), 'Save as Html')
   )
 }
 
@@ -63,16 +64,18 @@ shinyModule <- function(input, output, session, data) {
   
   ### save map, takes some seconds ###
   output$savePlot <- downloadHandler(
-    filename = function() {
-      paste("SimplePlot.png", sep="")
-    },
+    filename = "LeafletMap.html",
     content = function(file) {
-      mymap <- mmap()
-      mapshot( x =mymap
-               , remove_controls = "zoomControl"
-               , file = file
-               , cliprect = "viewport"
-               , selfcontained = FALSE)
+      saveWidget(
+        widget = mmap(),
+        file=file
+      )
+      #mymap <- mmap()
+      #mapshot( x =mymap
+      #         , remove_controls = "zoomControl"
+      #         , file = file
+      #         , cliprect = "viewport"
+      #         , selfcontained = FALSE)
     }
   )
   
