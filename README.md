@@ -1,4 +1,4 @@
-# Simple Leaflet Map
+# Interactive Map (leaflet)
 MoveApps
 
 Github repository: *github.com/movestore/leaflet_mapper*
@@ -21,7 +21,7 @@ none
 
 The button `Save Plot` in the UI is supposed to allow the local download of the created map.
 
-### Parameters 
+### Settings 
 There are no parameters/settings, but the App opens into an interactive User Interface (UI) where settings can be adapted.
 
 ### Null or error handling:
