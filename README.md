@@ -19,12 +19,15 @@ Shiny user interface (UI)
 ### Artefacts
 none
 
-The button `Save Plot` in the UI is supposed to allow the local download of the created map.
+The button `Save As Html` in the UI is supposed to allow the local download of the created map.
 
 ### Settings 
 There are no parameters/settings, but the App opens into an interactive User Interface (UI) where settings can be adapted.
 
+### Most common errors
+Please make an issue here if you encounter recurrent errors.
+
 ### Null or error handling:
 **Data:** For use in further Apps the input data set is returned. Empty input will give an error.
 
-**Big data:** If the input data set exceeds 200,000 locations the Shiny UI does not perform properly. Please thin your data for visualisation with this App.
+**Big data:** If the input data set exceeds 200,000 locations the Shiny UI does not perform properly. Please thin your data for visualisation with this App. Note that performance of MoveApps has recently improved, try out if you need to plot more locations.
