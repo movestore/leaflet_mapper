@@ -30,13 +30,14 @@ shinyModule <- function(input, output, session, data) {
   dataObj <- reactive({ data })
   current <- reactiveVal(data)
   
-  ids <- unique(mt_track_id(data))
-  col <- rainbow(n=length(ids))
+
   data_spl <- split(data,mt_track_id(data))
+  ids <- names(data_spl)
+  col <- rainbow(n=length(ids))
   
   mmap <- reactive({
     bounds <- as.vector(st_bbox(dataObj()))
-    cols <- colorFactor(gnuplot(), domain=unique(mt_track_id(dataObj())))
+    cols <- colorFactor(gnuplot(), domain=names(data_spl))
     outl <- leaflet(options=leafletOptions(minZoom=2)) %>% 
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
       
