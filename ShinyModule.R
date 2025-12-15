@@ -7,82 +7,191 @@ library("leaflet")
 library("leaflet.extras")
 library("htmlwidgets")
 
-# to display messages to the user in the log file of the App in MoveApps
-# one can use the function from the src/common/logger.R file:
-# logger.fatal(), logger.error(), logger.warn(), logger.info(), logger.debug(), logger.trace()
 
 shinyModuleUserInterface <- function(id, label) {
-  # all IDs of UI functions need to be wrapped in ns()
+  
   ns <- NS(id)
-
+  
   tagList(
     titlePanel("Basic interactive Map using leaflet"),
-    leafletOutput(ns("leafmap"),height="85vh"),
-    downloadButton(ns('savePlot'), 'Save as Html')
+    sidebarLayout(
+      sidebarPanel(width = 3,
+                   
+        h4("Tracks"),
+        checkboxGroupInput(ns("animals"), NULL, choices = NULL),
+        fluidRow(
+          column(6, actionButton(ns("select_all_animals"), "Select All Animals", class = "btn-sm")),
+          column(6, actionButton(ns("unselect_animals"), "Unselect All Animals", class = "btn-sm"))
+        ),
+        
+        
+        br(),
+        h4("Attributes"),
+        selectInput( 
+          ns("select_attr"), 
+          "Optionally: Select other attributes to show on the point (multiple choices):", 
+          choices = NULL,
+          multiple = TRUE 
+        ), 
+        
+        # selectInput(ns("attr_1"), NULL, choices = NULL, multiple = TRUE ),
+        
+        
+        br(),
+        h4("Download"),
+        downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
+        # downloadButton(ns("save_png"), "Save Map as PNG", class = "btn-sm"),
+        ),
+      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 9)
+    )
   )
 }
 
-
-# The parameter "data" is reserved for the data object passed on from the previous app
+###################################
 shinyModule <- function(input, output, session, data) {
-  # all IDs of UI functions need to be wrapped in ns()
+  
   ns <- session$ns
   dataObj <- reactive({ data })
   current <- reactiveVal(data)
   
-
-  data_spl <- split(data,mt_track_id(data))
-  ids <- names(data_spl)
-  col <- rainbow(n=length(ids))
   
-  mmap <- reactive({
-    bounds <- as.vector(st_bbox(dataObj()))
-    cols <- colorFactor(gnuplot(), domain=names(data_spl))
-    outl <- leaflet(options=leafletOptions(minZoom=2)) %>% 
-      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
-      
-      addTiles() %>%
-      addProviderTiles("Esri.WorldTopoMap",group = "TopoMap") %>%
-      addProviderTiles("Esri.WorldImagery", group = "Aerial")
-    
-    for (i in seq(along=ids))
-    {
-      outl <- outl %>%
-        addCircleMarkers(data = data_spl[[i]], popup=mt_time(data_spl[[i]]), fillOpacity = 0.5, opacity = 0.7, radius=1, color = col[i], group = paste("Points", ids[i]))  %>%
-        addPolylines(data = st_coordinates(data_spl[[i]]), color = col[i], weight=3, opacity=0.3, group = paste("Lines",ids[i]))
-    }
-    
-    outl <- outl %>%
-      addLegend(position= "topright", colors=col, 
-                labels=ids ,opacity = 0.7, title = "Tracks") %>%
-      addScaleBar(position="topleft", 
-                  options=scaleBarOptions(maxWidth = 100, metric = TRUE, imperial = FALSE, updateWhenIdle = TRUE)) %>%
-      addLayersControl(
-        baseGroups = c("TopoMap", "Aerial"),
-        overlayGroups = c(paste("Points",ids),paste("Lines",ids)),
-        options = layersControlOptions(collapsed = FALSE)
-      )
-    outl   
+  if (is.null(data) || nrow(data) == 0) {
+    message("Input is NULL or has 0 rows — returning NULL.")
+    return(NULL)
+  }
+  
+  if (!sf::st_is_longlat(data)) data <- sf::st_transform(data, 4326)
+  
+  track_col <- mt_track_id_column(data)
+  
+  
+  all_ids <- reactive({
+    sort(unique(as.character(data[[track_col]])))
   })
   
-  output$leafmap <- renderLeaflet({
-    mmap()  
-  })  
+  observeEvent(all_ids(), {
+    updateCheckboxGroupInput(session, "animals",
+                             choices = all_ids(),
+                             selected = all_ids())
+  }, ignoreInit = FALSE)
   
-  ### save map, takes some seconds ###
-  output$savePlot <- downloadHandler(
-    filename = "LeafletMap.html",
-    content = function(file) {
-      saveWidget(
-        widget = mmap(),
-        file=file
+  observeEvent(input$select_all_animals, {
+    updateCheckboxGroupInput(session, "animals", selected = all_ids())
+  })
+  
+  observeEvent(input$unselect_animals, {
+    updateCheckboxGroupInput(session, "animals", selected = character(0))
+  })
+  
+  # Filtered data (selected animals)
+  selected_data <- reactive({
+    req(input$animals)
+    d <- data
+    d[d[[track_col]] %in% input$animals, ]
+  })
+  
+  ###############
+  # attribute choices
+  observe({
+    d <- selected_data()
+    req(nrow(d) > 0)
+    
+    # Event attributes
+    event_attr <- sf::st_drop_geometry(d)
+    event_choices <- names(ev)[colSums(!is.na(event_attr)) > 0]
+    
+    # Track attributes
+    track_attr <- mt_track_data(d)
+    track_choices <- character(0)
+    
+    if (!is.null(track_attr) && ncol(track_attr) > 0) {
+      trk_choices <- names(track_attr)[colSums(!is.na(track_attr)) > 0]
+    }
+    
+    choices <- sort(unique(c(event_choices, track_choices)))
+    
+    prev <- isolate(input$select_attr)
+    sel  <- if (!is.null(prev)) intersect(prev, choices) else NULL
+    
+    updateSelectInput(session, "select_attr", choices = choices, selected = sel)
+  })
+  
+  
+  ###################
+  # Lines 
+  track_lines <- reactive({
+    d <- selected_data()
+    req(nrow(d) >= 2)
+    mt_track_lines(d)
+  })
+  
+  mmap <- reactive({
+    d <- selected_data()
+    req(nrow(d) >= 1)
+    
+    bounds <- as.vector(sf::st_bbox(d))
+    ids <- sort(unique(as.character(d[[track_col]])))
+    pal <- colorFactor(palette = pals::glasbey(), domain = ids)
+    
+    # colors for points
+    d$col <- pal(as.character(d[[track_col]]))
+    
+    # Build and colors  for lines
+    tl <- track_lines()
+    tl$col <- pal(as.character(tl[[track_col]]))
+    
+    coords <- sf::st_coordinates(d)
+    d$popup_html <- paste0(
+      "<b>Track:</b> ", as.character(d[[track_col]]), "<br>",
+      "<b>Time:</b> ", as.character(mt_time(d)), "<br>",
+      "<b>Lon:</b> ", round(coords[,1], 6), "<br>",
+      "<b>Lat:</b> ", round(coords[,2], 6)
+    )
+    
+    leaflet(options = leafletOptions(minZoom = 2)) %>%
+      fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addProviderTiles("Esri.WorldTopoMap", group = "TopoMap") %>%
+      addProviderTiles("Esri.WorldImagery", group = "Aerial") %>%
+      addScaleBar(position = "topleft") %>%
+      
+      addCircleMarkers(data = d,radius = 1, opacity = 0.7, fillOpacity = 0.5, color = ~col, popup = d$popup_html, group = "Points") %>%
+      
+      addPolylines( data = tl,  weight = 3,  opacity = 0.5, color = ~col,  group = "Lines") %>%
+      
+      addLegend(position = "bottomright", pal = pal,values = ids, title = "Tracks", opacity = 0.8) %>%
+      
+      addLayersControl(
+        baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),
+        overlayGroups = c("Lines", "Points"),
+        options = layersControlOptions(collapsed = FALSE)
       )
-      #mymap <- mmap()
-      #mapshot( x =mymap
-      #         , remove_controls = "zoomControl"
-      #         , file = file
-      #         , cliprect = "viewport"
-      #         , selfcontained = FALSE)
+  })
+  ########################################
+  # Auto-save map for all individuals
+  
+  saved_html <- reactiveVal(FALSE)
+  
+  observe({
+    if (saved_html()) return()
+    
+    d <- selected_data()
+    req(nrow(d) > 0)
+    
+    htmlwidgets::saveWidget(widget = isolate(mmap()), file = "./data/output/autosave_leaflet_mapper.html", selfcontained = FALSE )
+    
+    saved_html(TRUE)
+  })
+  ######################################
+  
+  
+  
+  output$leafmap <- renderLeaflet(mmap())
+  
+  output$save_html <- downloadHandler(
+    filename = function() paste0("LeafletMap_", Sys.Date(), ".html"),
+    content = function(file) {
+      saveWidget(widget = mmap(), file = file)
     }
   )
   
