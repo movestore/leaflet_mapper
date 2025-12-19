@@ -1,12 +1,51 @@
-library("shiny")
-library("move2")
-library("sf")
-library("mapview")
-library("pals")
-library("leaflet")
-library("leaflet.extras")
-library("htmlwidgets")
+library(shiny)
+library(move2)
+library(sf)
+library(pals)
+library(leaflet)
+library(htmlwidgets)
+library(webshot2)
+library(shinycssloaders)
+library(shinybusy)
 
+
+# helper1: move track attributes to event
+as_event <- function(mv, attr_names) {
+  if (is.null(attr_names) || !length(attr_names)) return(mv)
+  nms <- unique(as.character(attr_names))
+  trkattrb <- names(mt_track_data(mv))
+  out <- mv
+  for (nm in nms) if (!is.null(nm) && nm %in% trkattrb) out <- mt_as_event_attribute(out, nm)
+  out
+}
+
+# helper2: popup on points
+make_popup <- function(d, track_col, attrs = character(0)) {
+  coords <- sf::st_coordinates(d)
+  dd <- sf::st_drop_geometry(d)
+  
+  keep <- intersect(attrs, names(dd))
+  keep <- unique(keep)  
+  
+  extra <- if (length(keep)) {
+    vapply(seq_len(nrow(dd)), function(i) {
+      vals_i <- sapply(keep, function(nm) dd[[nm]][i])
+      paste(paste0("<b>", keep, ":</b> ", as.character(vals_i)), collapse = "<br>")
+    }, character(1))
+  } else {
+    rep("", nrow(d))
+  }
+  
+  paste0(
+    "<b>Track:</b> ", as.character(dd[[track_col]]), "<br>",
+    "<b>Time:</b> ", as.character(mt_time(d)), "<br>",
+    "<b>Lon:</b> ", round(coords[, 1], 6), "<br>",
+    "<b>Lat:</b> ", round(coords[, 2], 6),
+    ifelse(nzchar(extra), paste0("<br>", extra), "")
+  )
+}
+
+########### Interface ##########################
 
 shinyModuleUserInterface <- function(id, label) {
   
@@ -27,32 +66,34 @@ shinyModuleUserInterface <- function(id, label) {
         
         br(),
         h4("Attributes"),
-        selectInput( 
-          ns("select_attr"), 
-          "Optionally: Select other attributes to show on the point (multiple choices):", 
-          choices = NULL,
-          multiple = TRUE 
-        ), 
+        selectInput(ns("select_attr"), "Optionally: Select other attributes to show on points (multiple choices is possible):", choices = NULL, multiple = TRUE), 
         
-        # selectInput(ns("attr_1"), NULL, choices = NULL, multiple = TRUE ),
-        
+        hr(),
+        actionButton(ns("apply_btn"), "Apply Changes", class = "btn-primary btn-block"),
+        hr(),
         
         br(),
         h4("Download"),
         downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
-        # downloadButton(ns("save_png"), "Save Map as PNG", class = "btn-sm"),
+        downloadButton(ns("save_png"), "Save Map as PNG", class = "btn-sm"),
         ),
-      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 9)
+      
+      mainPanel(withSpinner(leafletOutput(ns("leafmap"), height = "85vh")) ,width = 9)
     )
   )
 }
 
-###################################
+
+######### Server ##########################
+
 shinyModule <- function(input, output, session, data) {
   
   ns <- session$ns
   dataObj <- reactive({ data })
   current <- reactiveVal(data)
+  locked_settings <- reactiveVal(NULL)
+  locked_data <- reactiveVal(NULL)
+  
   
   
   if (is.null(data) || nrow(data) == 0) {
@@ -90,43 +131,61 @@ shinyModule <- function(input, output, session, data) {
     d[d[[track_col]] %in% input$animals, ]
   })
   
+  # initialize
+  observe({
+    if (!is.null(locked_data())) return()
+    d0 <- selected_data()
+    req(nrow(d0) > 0)
+    locked_data(d0)
+    locked_settings(list(animals = input$animals, select_attr = input$select_attr))
+  })
+  
   ###############
   # attribute choices
   observe({
     d <- selected_data()
     req(nrow(d) > 0)
     
-    # Event attributes
-    event_attr <- sf::st_drop_geometry(d)
-    event_choices <- names(ev)[colSums(!is.na(event_attr)) > 0]
-    
     # Track attributes
-    track_attr <- mt_track_data(d)
+    td <- mt_track_data(d)
     track_choices <- character(0)
-    
-    if (!is.null(track_attr) && ncol(track_attr) > 0) {
-      trk_choices <- names(track_attr)[colSums(!is.na(track_attr)) > 0]
+    if (!is.null(td) && ncol(td) > 0) {
+      track_choices <- names(td)[colSums(!is.na(td)) > 0]
     }
     
-    choices <- sort(unique(c(event_choices, track_choices)))
+    # Convert track to event
+    d2 <- as_event(d, track_choices)
     
+    event_attr <- sf::st_drop_geometry(d2)
+    choices <- names(event_attr)[colSums(!is.na(event_attr)) > 0]
+    choices <- sort(unique(choices))
+    
+    # keep previous selection
     prev <- isolate(input$select_attr)
     sel  <- if (!is.null(prev)) intersect(prev, choices) else NULL
     
     updateSelectInput(session, "select_attr", choices = choices, selected = sel)
   })
+  ################
   
-  
-  ###################
+  # update when click on Apply button
+  observeEvent(input$apply_btn, {
+    locked_data(selected_data())
+    locked_settings(list(animals = input$animals, select_attr = input$select_attr))
+  }, ignoreInit = TRUE)
+ 
   # Lines 
   track_lines <- reactive({
-    d <- selected_data()
+    d <- locked_data()
+    req(d)
     req(nrow(d) >= 2)
     mt_track_lines(d)
   })
   
+  
   mmap <- reactive({
-    d <- selected_data()
+    d <- locked_data()
+    req(d)
     req(nrow(d) >= 1)
     
     bounds <- as.vector(sf::st_bbox(d))
@@ -136,17 +195,17 @@ shinyModule <- function(input, output, session, data) {
     # colors for points
     d$col <- pal(as.character(d[[track_col]]))
     
-    # Build and colors  for lines
+    # Build lines
     tl <- track_lines()
     tl$col <- pal(as.character(tl[[track_col]]))
     
-    coords <- sf::st_coordinates(d)
-    d$popup_html <- paste0(
-      "<b>Track:</b> ", as.character(d[[track_col]]), "<br>",
-      "<b>Time:</b> ", as.character(mt_time(d)), "<br>",
-      "<b>Lon:</b> ", round(coords[,1], 6), "<br>",
-      "<b>Lat:</b> ", round(coords[,2], 6)
-    )
+    
+    s <- locked_settings()
+    attr_sel <- if (!is.null(s) && !is.null(s$select_attr)) s$select_attr else character(0)
+    
+    if (length(attr_sel)) d <- as_event(d, attr_sel)  # track to event
+    d$popup_html <- make_popup(d, track_col, attr_sel)
+    
     
     leaflet(options = leafletOptions(minZoom = 2)) %>%
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
@@ -155,17 +214,11 @@ shinyModule <- function(input, output, session, data) {
       addProviderTiles("Esri.WorldImagery", group = "Aerial") %>%
       addScaleBar(position = "topleft") %>%
       
-      addCircleMarkers(data = d,radius = 1, opacity = 0.7, fillOpacity = 0.5, color = ~col, popup = d$popup_html, group = "Points") %>%
-      
+      addCircleMarkers(data = d,radius = 1, opacity = 0.7, fillOpacity = 0.5, color = ~col, popup = ~popup_html, group = "Points") %>%
       addPolylines( data = tl,  weight = 3,  opacity = 0.5, color = ~col,  group = "Lines") %>%
-      
       addLegend(position = "bottomright", pal = pal,values = ids, title = "Tracks", opacity = 0.8) %>%
-      
-      addLayersControl(
-        baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),
-        overlayGroups = c("Lines", "Points"),
-        options = layersControlOptions(collapsed = FALSE)
-      )
+      addLayersControl(baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),overlayGroups = c("Lines", "Points"), options = layersControlOptions(collapsed = FALSE))
+    
   })
   ########################################
   # Auto-save map for all individuals
@@ -179,7 +232,6 @@ shinyModule <- function(input, output, session, data) {
     req(nrow(d) > 0)
     
     htmlwidgets::saveWidget(widget = isolate(mmap()), file = "./data/output/autosave_leaflet_mapper.html", selfcontained = FALSE )
-    
     saved_html(TRUE)
   })
   ######################################
@@ -188,12 +240,32 @@ shinyModule <- function(input, output, session, data) {
   
   output$leafmap <- renderLeaflet(mmap())
   
+  
+  #### download HTML
   output$save_html <- downloadHandler(
     filename = function() paste0("LeafletMap_", Sys.Date(), ".html"),
     content = function(file) {
+      
+      show_modal_spinner(spin = "fading-circle", text = "Saving HTML…")
+      on.exit(remove_modal_spinner(), add = TRUE)
+      
       saveWidget(widget = mmap(), file = file)
     }
   )
+  
+  #### save map as PNG
+  output$save_png <- downloadHandler(
+    filename = paste0("LeafletMap_", Sys.Date(),".png"),
+    content = function(file) {
+      
+      show_modal_spinner(spin = "fading-circle", text = "Saving PNG…")
+      on.exit(remove_modal_spinner(), add = TRUE)
+      
+      html_file <- "leaflet_export.html"
+      saveWidget(mmap(), file = html_file, selfcontained = TRUE)
+      Sys.sleep(2)
+      webshot(url = html_file,file = file,vwidth = 1000, vheight = 800) })
+
   
   return(reactive({ current() }))
 }
