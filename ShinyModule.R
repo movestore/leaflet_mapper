@@ -66,7 +66,8 @@ shinyModuleUserInterface <- function(id, label) {
         
         br(),
         h4("Attributes"),
-        selectInput(ns("select_attr"), "Optionally: Select other attributes to show on points (multiple choices is possible):", choices = NULL, multiple = TRUE), 
+        selectInput(ns("select_attr"), "Optionally: Select other attributes to show in the pop-up at each point (multiple can be selected):", 
+ choices = NULL, multiple = TRUE), 
         
         hr(),
         actionButton(ns("apply_btn"), "Apply Changes", class = "btn-primary btn-block"),
