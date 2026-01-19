@@ -52,6 +52,6 @@ The input data remains unchanged and is passed on as output.
 
 ### Null or error handling
 
-**Big data:** If the input data set exceeds 200,000 locations the Shiny UI does not perform properly. Please thin your data for visualisation with this App or use another App to visualize your data. 
-**Track Selection** If no track is selected, a red warning (“No track selected”) is shown and the map is not updated.
-**Attribute availability**: The attribute dropdown is updated based on the currently selected tracks and only lists attributes that contain at least one non-missing value for those tracks.
+**Big data:** If the input data set exceeds 200,000 locations the Shiny UI does not perform properly. Please thin your data for visualisation with this App or use another App to visualize your data.   
+**Track Selection** If no track is selected, a red warning (“No track selected”) is shown and the map is not updated.  
+**Attribute availability**: The attribute dropdown is updated based on the currently selected tracks and only lists attributes that contain at least one non-missing value for those tracks.  
