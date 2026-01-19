@@ -56,28 +56,29 @@ shinyModuleUserInterface <- function(id, label) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    
-        h4("Tracks"),
-        checkboxGroupInput(ns("animals"), NULL, choices = NULL),
-        fluidRow(
-          column(6, actionButton(ns("select_all_animals"), "Select All Animals", class = "btn-sm")),
-          column(6, actionButton(ns("unselect_animals"), "Unselect All Animals", class = "btn-sm"))
-        ),
-        
-        
-        br(),
-        h4("Attributes"),
-        selectInput(ns("select_attr"), "Optionally: Select other attributes to show in the pop-up at each point (multiple can be selected):", 
- choices = NULL, multiple = TRUE), 
-        
-        hr(),
-        actionButton(ns("apply_btn"), "Apply Changes", class = "btn-primary btn-block"),
-        hr(),
-        
-        br(),
-        h4("Download"),
-        downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
-        downloadButton(ns("save_png"), "Save Map as PNG", class = "btn-sm"),
-        ),
+                   h4("Tracks"),
+                   checkboxGroupInput(ns("animals"), NULL, choices = NULL),
+                   fluidRow(
+                     column(6, actionButton(ns("select_all_animals"), "Select All Animals", class = "btn-sm")),
+                     column(6, actionButton(ns("unselect_animals"), "Unselect All Animals", class = "btn-sm"))
+                   ),
+                   
+                   
+                   br(),
+                   h4("Attributes"),
+                   selectInput(ns("select_attr"), "Optionally: Select other attributes to show in the pop-up at each point (multiple can be selected):", 
+                               choices = NULL, multiple = TRUE), 
+                   
+                   hr(),
+                   actionButton(ns("apply_btn"), "Apply Changes", class = "btn-primary btn-block"),
+                   uiOutput(ns("apply_warning")),
+                   hr(),
+                   
+                   br(),
+                   h4("Download"),
+                   downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
+                   downloadButton(ns("save_png"), "Save Map as PNG", class = "btn-sm"),
+      ),
       
       mainPanel(withSpinner(leafletOutput(ns("leafmap"), height = "85vh")) ,width = 9)
     )
@@ -94,6 +95,14 @@ shinyModule <- function(input, output, session, data) {
   current <- reactiveVal(data)
   locked_settings <- reactiveVal(NULL)
   locked_data <- reactiveVal(NULL)
+  
+  apply_warning <- reactiveVal(FALSE)
+  output$apply_warning <- renderUI({
+    if (isTRUE(apply_warning())) {div(style = "color:#b30000; font-weight:800; margin-top:6px;","No track selected")
+    } else {
+      NULL
+    }
+  })
   
   
   
@@ -142,8 +151,10 @@ shinyModule <- function(input, output, session, data) {
   })
   
   ###############
-  # attribute choices
-  observe({
+  
+  # attribute choices (update immediately when tracks change)
+  observeEvent(input$animals, {
+    
     d <- selected_data()
     req(nrow(d) > 0)
     
@@ -151,30 +162,42 @@ shinyModule <- function(input, output, session, data) {
     td <- mt_track_data(d)
     track_choices <- character(0)
     if (!is.null(td) && ncol(td) > 0) {
-      track_choices <- names(td)[colSums(!is.na(td)) > 0]
+      track_choices <- names(td)
     }
     
-    # Convert track to event
+    # Convert all track attrs to event
     d2 <- as_event(d, track_choices)
     
     event_attr <- sf::st_drop_geometry(d2)
-    choices <- names(event_attr)[colSums(!is.na(event_attr)) > 0]
+    
+    # Keep only attrs that have at least one non-NA 
+    choices <- names(event_attr)[vapply(event_attr, function(x) any(!is.na(x)), logical(1))]
     choices <- sort(unique(choices))
     
-    # keep previous selection
+    # keep previous selection if still valid
     prev <- isolate(input$select_attr)
     sel  <- if (!is.null(prev)) intersect(prev, choices) else NULL
     
     updateSelectInput(session, "select_attr", choices = choices, selected = sel)
-  })
-  ################
+    
+  }, ignoreInit = FALSE)
   
-  # update when click on Apply button
+  
+  ##############################################
+  
+  # Apply button
   observeEvent(input$apply_btn, {
+    # if no track selected, not change map
+    if (is.null(input$animals) || length(input$animals) == 0) {
+      apply_warning(TRUE)
+      return()
+    }
+    
+    apply_warning(FALSE)
     locked_data(selected_data())
     locked_settings(list(animals = input$animals, select_attr = input$select_attr))
   }, ignoreInit = TRUE)
- 
+  
   # Lines 
   track_lines <- reactive({
     d <- locked_data()
@@ -266,7 +289,7 @@ shinyModule <- function(input, output, session, data) {
       saveWidget(mmap(), file = html_file, selfcontained = TRUE)
       Sys.sleep(2)
       webshot(url = html_file,file = file,vwidth = 1000, vheight = 800) })
-
+  
   
   return(reactive({ current() }))
 }

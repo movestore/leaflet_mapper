@@ -37,7 +37,7 @@ The following files can be downloaded optionally (to disk):
 
 
 ### Settings
-**"Tracks"**: select one or multiple individuals. Buttons available to select or unselect all tracks.
+**"Tracks"**: select one or multiple individuals. Buttons available to select or unselect all tracks.If no track is selected, a red warning (“No track selected”) is shown and the map is not updated.
 
 **"Attribute"**: Select the attributes to display in the point popup. If nothing is selected, the popup shows only track ID, timestamp, latitude, and longitude.
 
@@ -53,6 +53,5 @@ The input data remains unchanged and is passed on as output.
 ### Null or error handling
 
 **Big data:** If the input data set exceeds 200,000 locations the Shiny UI does not perform properly. Please thin your data for visualisation with this App or use another App to visualize your data. 
-
-**Missing attributes:** If a selected attribute contains only missing values for the selected tracks, it will not be shown in the popup.
-
+**Track Selection** If no track is selected, a red warning (“No track selected”) is shown and the map is not updated.
+**Attribute availability**: The attribute dropdown is updated based on the currently selected tracks and only lists attributes that contain at least one non-missing value for those tracks.
