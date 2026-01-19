@@ -98,7 +98,9 @@ shinyModule <- function(input, output, session, data) {
   
   apply_warning <- reactiveVal(FALSE)
   output$apply_warning <- renderUI({
-    if (isTRUE(apply_warning())) {div(style = "color:#b30000; font-weight:800; margin-top:6px;","No track selected")
+    if (isTRUE(apply_warning())) {
+      logger.info("No track selected.")
+      div(style = "color:#b30000; font-weight:800; margin-top:6px;","No track selected")
     } else {
       NULL
     }
