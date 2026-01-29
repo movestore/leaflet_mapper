@@ -18,16 +18,19 @@
         "name": "pals"
       },
 	        {
-        "name": "mapview"
-      },
-	        {
         "name": "leaflet"
       },
-	        {
-        "name": "leaflet.extras"
+	  	    {
+        "name": "htmlwidgets"
       },
 	  	        {
-        "name": "htmlwidgets"
+        "name": "webshot2"
+      },
+	  	        {
+        "name": "shinycssloaders"
+      },
+	  	        {
+        "name": "shinybusy"
       }
     ]
   },
@@ -39,7 +42,10 @@
     "map",
     "leaflet",
     "shiny",
-    "interactive"
+    "interactive",
+    "point",
+    "line",
+    "attribute"
   ],
   "people": [
     {
@@ -82,6 +88,16 @@
       "orcid": null,
       "affiliation": "Max-Planck-Institute of Animal Behavior",
       "affiliationRor": "https://ror.org/026stee22"
-    }
+    },
+{
+  "firstName": "Nafiseh",
+  "middleInitials": null,
+  "lastName": "Tavakol",
+  "email": "ntavakol@ab.mpg.de",
+  "roles": ["contributor"],
+  "orcid": "0000-0003-3674-4784",
+  "affiliation": "Max-Planck-Institute of Animal Behavior",
+  "affiliationRor": "https://ror.org/026stee22"
+}
   ]
 }
