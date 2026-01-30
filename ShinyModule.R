@@ -257,7 +257,10 @@ shinyModule <- function(input, output, session, data) {
     d <- selected_data()
     req(nrow(d) > 0)
     
-    htmlwidgets::saveWidget(widget = isolate(mmap()), file = "./data/output/autosave_leaflet_mapper.html", selfcontained = FALSE )
+    dir.create(targetDirFiles <- tempdir(), showWarnings = FALSE)
+    htmlwidgets::saveWidget(widget = isolate(mmap()), file = file.path(targetDirFiles,"autosave_leaflet_mapper.html"), selfcontained = FALSE )
+    file.copy(file.path(targetDirFiles, "autosave_leaflet_mapper.html"), appArtifactPath("autosave_leaflet_mapper.html"), overwrite=TRUE)
+    
     saved_html(TRUE)
   })
   ######################################
