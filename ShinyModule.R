@@ -96,7 +96,8 @@ shinyModuleUserInterface <- function(id, label) {
                    br(),
                    h4("Download"),
                    downloadButton(ns("save_html"), "Download as HTML", class = "btn-sm"),
-                   downloadButton(ns("save_png"),  "Save Map as PNG", class = "btn-sm")
+                   downloadButton(ns("save_png"),  "Save Map as PNG", class = "btn-sm"),
+                   h6("(PNG export is currently not working)")
       ),
       
       mainPanel(withSpinner(leafletOutput(ns("leafmap"), height = "85vh")), width = 9)
@@ -327,9 +328,10 @@ shinyModule <- function(input, output, session, data) {
     
     m <- leaflet(options = leafletOptions(minZoom = 2)) %>%
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%
-      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      #addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
       addProviderTiles("Esri.WorldTopoMap", group = "TopoMap") %>%
       addProviderTiles("Esri.WorldImagery", group = "Aerial") %>%
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
       addScaleBar(position = "topleft") %>%
       addCircleMarkers(
         data = d, radius = 1, opacity = 0.7, fillOpacity = 0.5,
@@ -348,7 +350,7 @@ shinyModule <- function(input, output, session, data) {
       addLegend(position = "bottomright", pal = pal, values = ids,
                 title = "Tracks", opacity = 0.8, group = "Legend") %>%
       addLayersControl(
-        baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),
+        baseGroups = c("TopoMap", "Aerial", "OpenStreetMap"  ),
         overlayGroups = c("Lines", "Points", "Legend"),
         options = layersControlOptions(collapsed = FALSE)
       )
