@@ -33,7 +33,7 @@ The following files can be downloaded optionally (to disk):
 
 `LeafletMap_**.html` : HTML map of the selected tracks (lines) and points, including any user-selected popup attributes.
 
-`LeafletMap_**.png` : PNG image of the selected tracks (lines) and points.(PNG export is currently not working due to some setting)
+`LeafletMap_**.png` : PNG image of the selected tracks (lines) and points.
 
 
 ### Settings

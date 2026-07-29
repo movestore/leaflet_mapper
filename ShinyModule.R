@@ -96,8 +96,8 @@ shinyModuleUserInterface <- function(id, label) {
                    br(),
                    h4("Download"),
                    downloadButton(ns("save_html"), "Download as HTML", class = "btn-sm"),
-                   downloadButton(ns("save_png"),  "Save Map as PNG", class = "btn-sm"),
-                   h6("(PNG export is currently not working)")
+                   downloadButton(ns("save_png"),  "Save Map as PNG", class = "btn-sm")
+                  
       ),
       
       mainPanel(withSpinner(leafletOutput(ns("leafmap"), height = "85vh")), width = 9)
