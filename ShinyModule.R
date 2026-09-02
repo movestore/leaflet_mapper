@@ -8,6 +8,8 @@ library(webshot2)
 library(shinycssloaders)
 library(shinybusy)
 library(zip)
+library(callr)
+
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 

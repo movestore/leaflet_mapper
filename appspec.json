@@ -11,29 +11,35 @@
       {
         "name": "shiny"
       },
-	        {
+      {
         "name": "sf"
       },
-	        {
+      {
         "name": "pals"
       },
-	        {
+      {
         "name": "leaflet"
       },
-	  	    {
+      {
         "name": "htmlwidgets"
       },
-	  	        {
+      {
         "name": "webshot2"
       },
-	  	        {
+      {
         "name": "shinycssloaders"
       },
-	  	        {
+      {
         "name": "shinybusy"
       },
-	  	        {
+      {
         "name": "zip"
+      },
+      {
+        "name": "callr"
+      },
+      {
+        "name": "jsonlite"
       }
     ]
   },
