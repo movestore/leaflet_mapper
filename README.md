@@ -4,7 +4,7 @@ MoveApps
 Github repository: *github.com/movestore/leaflet_mapper*
 
 <p align="center">
-  <img src="example_leaflet_app.png" width="600" style="border: 2px solid black;">
+  <img src="example_leaflet_app.png" width="600">
 </p>
 
 ## Description
