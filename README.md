@@ -3,6 +3,10 @@ MoveApps
 
 Github repository: *github.com/movestore/leaflet_mapper*
 
+<p align="center">
+  <img src="example_leaflet_app.png" width="600" style="border: 2px solid black;">
+</p>
+
 ## Description
 Interactive Shiny Leaflet map showing track lines and points coloured by track ID. By clicking on each point a pop-up is displayed containing the values of user-selected attributes.
 
