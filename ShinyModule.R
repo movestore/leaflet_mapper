@@ -68,11 +68,6 @@ shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
   tagList(
-    # With many tracks the legend grows taller than the map and covers the
-    # layer control, so cap it and let it scroll instead.
-    tags$head(tags$style(HTML(
-      ".info.legend.leaflet-control { max-height: 55vh; overflow-y: auto; }"
-    ))),
     titlePanel("Basic interactive Map using leaflet"),
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -358,12 +353,21 @@ shinyModule <- function(input, output, session, data) {
         overlayGroups = c("Lines", "Points", "Legend"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
-      # Without this the wheel over a scrollable legend zooms the map instead
-      # of scrolling the legend. Harmless in the exported widget, where the
-      # height cap (app CSS only) does not apply.
+      # With many tracks the legend grows taller than the map and covers the
+      # layer control, so cap it and let it scroll. Styling the legend here
+      # rather than in the app's CSS means the cap travels with the widget, so
+      # the downloaded HTML and the artifact zip behave like the app. The PNG
+      # inherits it too and shows the legend clipped at the cap, which is
+      # accepted: a static image cannot scroll either way.
+      # disableScrollPropagation is what makes the wheel scroll the legend
+      # instead of zooming the map.
       onRender("function(el, x) {
         var lg = el.querySelector('.info.legend');
-        if (lg) L.DomEvent.disableScrollPropagation(lg);
+        if (lg) {
+          lg.style.maxHeight = '55vh';
+          lg.style.overflowY = 'auto';
+          L.DomEvent.disableScrollPropagation(lg);
+        }
       }")
   })
   
