@@ -68,6 +68,11 @@ shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
   tagList(
+    # With many tracks the legend grows taller than the map and covers the
+    # layer control, so cap it and let it scroll instead.
+    tags$head(tags$style(HTML(
+      ".info.legend.leaflet-control { max-height: 55vh; overflow-y: auto; }"
+    ))),
     titlePanel("Basic interactive Map using leaflet"),
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -352,7 +357,14 @@ shinyModule <- function(input, output, session, data) {
         baseGroups = c("TopoMap", "Aerial", "OpenStreetMap"  ),
         overlayGroups = c("Lines", "Points", "Legend"),
         options = layersControlOptions(collapsed = FALSE)
-      )
+      ) %>%
+      # Without this the wheel over a scrollable legend zooms the map instead
+      # of scrolling the legend. Harmless in the exported widget, where the
+      # height cap (app CSS only) does not apply.
+      onRender("function(el, x) {
+        var lg = el.querySelector('.info.legend');
+        if (lg) L.DomEvent.disableScrollPropagation(lg);
+      }")
   })
   
   output$leafmap <- renderLeaflet({
