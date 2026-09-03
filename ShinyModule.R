@@ -10,7 +10,6 @@ library(shinybusy)
 library(zip)
 library(callr)
 
-
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # helper1: move track attributes to event
@@ -19,7 +18,7 @@ as_event <- function(mv, attr_names) {
   nms <- unique(as.character(attr_names))
   trkattrb <- names(mt_track_data(mv))
   out <- mv
-  for (nm in nms) if (!is.null(nm) && nm %in% trkattrb) out <- mt_as_event_attribute(out, nm)
+  for (nm in nms) if (!is.null(nm) && nm %in% trkattrb) out <- mt_as_event_attribute(out, all_of(nm))
   out
 }
 
@@ -32,10 +31,8 @@ make_popup <- function(d, track_col, attrs = character(0)) {
   keep <- unique(keep)
   
   extra <- if (length(keep)) {
-    vapply(seq_len(nrow(dd)), function(i) {
-      vals_i <- sapply(keep, function(nm) dd[[nm]][i])
-      paste(paste0("<b>", keep, ":</b> ", as.character(vals_i)), collapse = "<br>")
-    }, character(1))
+    parts <- lapply(keep, function(nm) paste0("<b>", nm, ":</b> ", as.character(dd[[nm]])))
+    do.call(paste, c(parts, sep = "<br>"))
   } else {
     rep("", nrow(d))
   }
