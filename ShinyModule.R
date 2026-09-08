@@ -31,6 +31,9 @@ make_popup <- function(d, track_col, attrs = character(0)) {
   keep <- unique(keep)
   
   extra <- if (length(keep)) {
+    # Convert each column with as.character() *before* combining. Going via
+    # sapply()/unlist() would strip the class attribute, so POSIXct, Date and
+    # integer64 columns ended up rendered as their raw storage numbers.
     parts <- lapply(keep, function(nm) paste0("<b>", nm, ":</b> ", as.character(dd[[nm]])))
     do.call(paste, c(parts, sep = "<br>"))
   } else {
@@ -60,6 +63,19 @@ get_attr_choices <- function(mv) {
   
   sort(unique(c(track_choices, event_choices)))
 }
+
+# helper4: web mercator y of a latitude, as a fraction of the world square
+# (0 at the north edge, 1 at the south edge). Used to work out how many pixels
+# tall the map is in the browser, see the PNG download.
+merc_y <- function(lat) {
+  lat <- max(min(lat, 85.05112878), -85.05112878)
+  s <- sin(lat * pi / 180)
+  0.5 - log((1 + s) / (1 - s)) / (4 * pi)
+}
+
+# groups defined in mmap(): base tiles first, then the overlays
+base_groups    <- c("TopoMap", "Aerial", "OpenStreetMap")
+overlay_groups <- c("Lines", "Points", "Legend")
 
 ########### Interface ##########################
 
@@ -349,8 +365,8 @@ shinyModule <- function(input, output, session, data) {
       addLegend(position = "bottomright", pal = pal, values = ids,
                 title = "Tracks", opacity = 0.8, group = "Legend") %>%
       addLayersControl(
-        baseGroups = c("TopoMap", "Aerial", "OpenStreetMap"  ),
-        overlayGroups = c("Lines", "Points", "Legend"),
+        baseGroups = base_groups,
+        overlayGroups = overlay_groups,
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
       # With many tracks the legend grows taller than the map and covers the
@@ -408,8 +424,72 @@ shinyModule <- function(input, output, session, data) {
       # local file (and its sidecar) directly. Using FALSE drops the pandoc
       # dependency for PNG export (works even where pandoc is absent) and is
       # faster.
+      m <- isolate(mmap())
+
+      # The map is rebuilt from scratch here, so on its own it would always be
+      # the full-data view with the default base layer and every overlay on,
+      # whatever the user is actually looking at. Leaflet reports the live map
+      # state back to the server, so use it: "<id>_center"/"_zoom"/"_bounds"
+      # for the viewport, "<id>_groups" for the groups the layers control
+      # currently shows (the selected base layer included).
+      vwidth  <- 1000
+      vheight <- 800
+
+      ctr <- input$leafmap_center
+      zm  <- input$leafmap_zoom
+      bb  <- input$leafmap_bounds
+
+      if (!is.null(ctr) && !is.null(zm)) {
+        # leaflet.js applies fitBounds *after* setView, so the widget's own
+        # fitBounds has to be dropped or it would override the user's view.
+        m$x$fitBounds <- NULL
+        m <- m %>% setView(lng = ctr$lng, lat = ctr$lat, zoom = zm)
+
+        # The same centre and zoom in a differently shaped window frames a
+        # different area, so give the screenshot the pixel size the map has in
+        # the browser. That follows from the visible bounds and the zoom: at
+        # zoom z the whole world is 256 * 2^z px across.
+        if (!is.null(bb)) {
+          world <- 256 * 2^zm
+          lng_span <- bb$east - bb$west
+          if (lng_span <= 0) lng_span <- lng_span + 360   # view crosses the antimeridian
+          lng_span <- min(lng_span, 360)
+          w <- round(lng_span / 360 * world)
+          h <- round((merc_y(bb$south) - merc_y(bb$north)) * world)
+          if (isTRUE(is.finite(w) && is.finite(h) &&
+                     w >= 300 && h >= 300 && w <= 3000 && h <= 3000)) {
+            vwidth  <- w
+            vheight <- h
+          } else {
+            logger.info("PNG: implausible map size (%s x %s), using %dx%d",
+                        w, h, vwidth, vheight)
+          }
+        }
+        logger.info("PNG: view zoom=%s centre=%s,%s size=%dx%d",
+                    zm, ctr$lng, ctr$lat, vwidth, vheight)
+      } else {
+        logger.info("PNG: no live view reported, falling back to the full-data view")
+      }
+
+      vis <- input$leafmap_groups
+      if (!is.null(vis) && length(vis)) {
+        vis <- as.character(vis)
+
+        # The base layer needs showGroup, not just hideGroup on the others:
+        # addLayersControl() drops all but the *first* base group when the map
+        # is built, so hiding the rest would leave no background at all.
+        base_sel <- intersect(base_groups, vis)
+        base_sel <- if (length(base_sel)) base_sel[1] else base_groups[1]
+
+        hide <- c(setdiff(base_groups, base_sel), setdiff(overlay_groups, vis))
+        logger.info("PNG: base layer %s, hiding %s", base_sel,
+                    if (length(hide)) paste(hide, collapse = ", ") else "nothing")
+        if (length(hide)) m <- m %>% hideGroup(hide)
+        m <- m %>% showGroup(base_sel)
+      }
+
       html_file <- tempfile(fileext = ".html")
-      saveWidget(isolate(mmap()), file = html_file, selfcontained = FALSE)
+      saveWidget(m, file = html_file, selfcontained = FALSE)
       html_file <- normalizePath(html_file, winslash = "/", mustWork = TRUE)
       
       # webshot2/chromote drive headless Chrome over the SAME global `later`
@@ -420,10 +500,12 @@ shinyModule <- function(input, output, session, data) {
       # separate R process via callr gives chromote its own event loop and
       # avoids the deadlock. (This works; an in-process ChromoteSession does not.)
       callr::r(
-        function(html_file, out_file) {
-          webshot2::webshot(url = html_file, file = out_file, vwidth = 1000, vheight = 800,  delay = 2)
+        function(html_file, out_file, vwidth, vheight) {
+          webshot2::webshot(url = html_file, file = out_file,
+                            vwidth = vwidth, vheight = vheight, delay = 2)
         },
-        args = list(html_file = html_file, out_file = file)
+        args = list(html_file = html_file, out_file = file,
+                    vwidth = vwidth, vheight = vheight)
       )
       logger.info("PNG export done -> %s", file)
     }
